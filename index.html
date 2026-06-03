@@ -100,9 +100,13 @@
         }
         mostrarAnimaisSplash();
 
-        function tocarSom(nomeArquivo) {
-            const som = new Audio('file:///android_asset/' + nomeArquivo);
-            som.play().catch(e => console.log("Erro: " + e));
+        // Ajuste: Certifique-se de que o caminho dos arquivos está correto no GitHub
+        const somClick = new Audio('som_click.mp3');
+        const somVitoria = new Audio('som_vitoria.mp3');
+
+        function tocarSom(audioObj) {
+            audioObj.currentTime = 0;
+            audioObj.play().catch(e => console.log("Erro ao tocar som: " + e));
         }
 
         function startLevel() {
@@ -127,7 +131,7 @@
 
         function flipCard() {
             if (flippedCards.length < 2 && !this.classList.contains('flipped') && !this.classList.contains('matched')) {
-                tocarSom('clique.mp3');
+                tocarSom(somClick);
                 this.classList.add('flipped');
                 this.textContent = this.dataset.animal;
                 flippedCards.push(this);
@@ -141,7 +145,7 @@
                 c1.classList.add('matched'); c2.classList.add('matched');
                 matchedPairs++;
                 if (matchedPairs === (cardsCount[currentLevel - 1] / 2)) {
-                    tocarSom('vitoria.mp3');
+                    tocarSom(somVitoria);
                     if (currentLevel < 9) {
                         document.getElementById('trans-title').textContent = `Fase ${currentLevel} concluída!`;
                         document.getElementById('trans-subtitle').textContent = `Prepare-se para: ${phaseNames[currentLevel]}`;
