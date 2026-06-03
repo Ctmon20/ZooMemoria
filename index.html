@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zoo Memória Pro</title>
+    <style>
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: linear-gradient(180deg, #e0f7fa 0%, #b2ebf2 100%); 
+            display: flex; flex-direction: column; align-items: center; 
+            margin: 0; padding: 20px; height: 100vh; overflow: hidden; 
+        }
+
+        /* Faixa no topo */
+        #top-banner { 
+            width: 100%; background: #008394; color: white; text-align: center; 
+            padding: 10px; font-weight: bold; font-size: 1.2rem; 
+            border-radius: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Splash Screen */
+        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #00bcd4; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 999; animation: fadeOut 1s forwards 4s; }
+        #animal-gallery { margin-top: 20px; font-size: 1.5rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 300px; }
+        #animal-gallery span { animation: flutuar 2s infinite ease-in-out; }
+        @keyframes flutuar { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        
+        /* Tela de Transição */
+        #transition-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 998; }
+        .modal { 
+            background: rgb(255, 255, 255); padding: 30px; border-radius: 40px; text-align: center; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: scaleUp 0.5s; 
+            width: 90%; max-width: 350px; border: 8px solid #8bc34a;
+        }
+
+        @keyframes pulso { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .trofeu { font-size: 80px; margin-bottom: 10px; animation: pulso 1s infinite; display: inline-block; }
+        
+        #header-container { text-align: center; margin-bottom: 15px; }
+        #phase-title { 
+            color: #006064; font-size: 1.5rem; margin: 0; 
+            text-transform: uppercase; letter-spacing: 2px;
+            background: rgba(255,255,255,0.5); padding: 5px 20px; border-radius: 50px;
+        }
+
+        .game-board { display: grid; gap: 12px; max-width: 400px; width: 100%; margin-top: 10px; }
+        .card { 
+            height: 65px; width: 100%; background-color: #00bcd4; display: flex; align-items: center; 
+            justify-content: center; font-size: 1.8rem; border-radius: 12px; cursor: pointer; 
+            transition: all 0.3s; box-shadow: 0 4px 0 #008394;
+        }
+        .card.flipped { background-color: #fff; transform: rotateY(180deg); box-shadow: 0 4px 0 #ccc; }
+        .card.matched { background-color: #8bc34a; box-shadow: 0 4px 0 #558b2f; }
+        
+        @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
+        @keyframes scaleUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="splash">
+        <h1>Zoo Memória</h1>
+        <p>Preparando a aventura!</p>
+        <div id="animal-gallery"></div>
+    </div>
+    
+    <div id="transition-screen">
+        <div class="modal">
+            <div class="trofeu">🏆</div>
+            <h2 id="trans-title" style="color: #006064; margin: 0;">Fase concluída!</h2>
+            <p id="trans-subtitle" style="color: #666; margin: 10px 0 20px 0;"></p>
+            <button id="btn-next" onclick="hideTransition()" style="width: 100%; padding:15px; border-radius:20px; border:none; background: #ff5722; color:white; font-weight:bold; font-size: 1.2rem; cursor: pointer; box-shadow: 0 5px 0 #bf360c;">
+                PRÓXIMA FASE
+            </button>
+        </div>
+    </div>
+
+    <div id="top-banner">JOGO DA MEMÓRIA</div>
+
+    <div id="header-container"><h2 id="phase-title">Fase 1: Jardim</h2></div>
+    <div class="game-board" id="game-board"></div>
+
+    <script>
+        const allAnimals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🦆', '🦄', '🐯', '🐙', '🐘'];
+        const phaseNames = ["Jardim", "Lagoa", "Fazenda", "Floresta", "Savana", "Selva", "Montanha", "Deserto", "Oceano"];
+        const cardsCount = [4, 6, 8, 10, 12, 14, 16, 18, 20];
+        
+        let currentLevel = 1;
+        let flippedCards = [];
+        let matchedPairs = 0;
+
+        function mostrarAnimaisSplash() {
+            const gallery = document.getElementById('animal-gallery');
+            allAnimals.forEach(animal => {
+                const span = document.createElement('span');
+                span.textContent = animal;
+                gallery.appendChild(span);
+            });
+        }
+        mostrarAnimaisSplash();
+
+        function tocarSom(nomeArquivo) {
+            const som = new Audio('file:///android_asset/' + nomeArquivo);
+            som.play().catch(e => console.log("Erro: " + e));
+        }
+
+        function startLevel() {
+            document.getElementById('phase-title').textContent = `Fase ${currentLevel}: ${phaseNames[currentLevel-1]}`;
+            const numPairs = cardsCount[currentLevel - 1] / 2;
+            const cols = currentLevel < 3 ? 2 : 4;
+            document.getElementById('game-board').style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            
+            const selectedAnimals = [...allAnimals.slice(0, numPairs), ...allAnimals.slice(0, numPairs)].sort(() => Math.random() - 0.5);
+            
+            const board = document.getElementById('game-board');
+            board.innerHTML = '';
+            selectedAnimals.forEach(animal => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.animal = animal;
+                card.addEventListener('click', flipCard);
+                board.appendChild(card);
+            });
+            matchedPairs = 0;
+        }
+
+        function flipCard() {
+            if (flippedCards.length < 2 && !this.classList.contains('flipped') && !this.classList.contains('matched')) {
+                tocarSom('clique.mp3');
+                this.classList.add('flipped');
+                this.textContent = this.dataset.animal;
+                flippedCards.push(this);
+                if (flippedCards.length === 2) setTimeout(checkMatch, 600);
+            }
+        }
+
+        function checkMatch() {
+            const [c1, c2] = flippedCards;
+            if (c1.dataset.animal === c2.dataset.animal) {
+                c1.classList.add('matched'); c2.classList.add('matched');
+                matchedPairs++;
+                if (matchedPairs === (cardsCount[currentLevel - 1] / 2)) {
+                    tocarSom('vitoria.mp3');
+                    if (currentLevel < 9) {
+                        document.getElementById('trans-title').textContent = `Fase ${currentLevel} concluída!`;
+                        document.getElementById('trans-subtitle').textContent = `Prepare-se para: ${phaseNames[currentLevel]}`;
+                        document.getElementById('btn-next').textContent = "PRÓXIMA FASE";
+                    } else {
+                        document.getElementById('trans-title').textContent = `Campeão!`;
+                        document.getElementById('trans-subtitle').textContent = `Você completou todas as fases!`;
+                        document.getElementById('btn-next').textContent = "JOGAR NOVAMENTE";
+                    }
+                    document.getElementById('transition-screen').style.display = 'flex';
+                }
+            } else {
+                c1.classList.remove('flipped'); c1.textContent = '';
+                c2.classList.remove('flipped'); c2.textContent = '';
+            }
+            flippedCards = [];
+        }
+
+        function hideTransition() {
+            document.getElementById('transition-screen').style.display = 'none';
+            if (currentLevel < 9) currentLevel++; else currentLevel = 1;
+            startLevel();
+        }
+
+        startLevel();
+    </script>
+</body>
+</html>
